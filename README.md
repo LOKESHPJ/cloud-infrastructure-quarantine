@@ -118,3 +118,68 @@ Any future execution capability must require explicit human approval, target-sco
 Discovery, threat detection, risk assessment, dependency mapping, evidence collection, recovery planning, audit logging, and the integrated dry-run pipeline are implemented.
 
 Automated quarantine and automated recovery are intentionally not implemented.
+
+## Container Security Hardening
+
+The Docker image includes the following security measures:
+
+- Uses the official Python 3.12 slim base image.
+- Updates available Debian packages during the image build.
+- Removes APT package lists after installation.
+- Installs Python dependencies without retaining pip cache.
+- Runs the application as a dedicated non-root user (`appuser`).
+- Creates application report directories with appropriate ownership.
+
+### Docker Build
+
+Build the hardened v4 image:
+
+    docker build --pull --no-cache -t cloud-infrastructure-quarantine:v4 .
+
+Tag the hardened image as latest:
+
+    docker tag cloud-infrastructure-quarantine:v4 cloud-infrastructure-quarantine:latest
+
+### Container Security Verification
+
+Runtime verification confirmed:
+
+- Configured user: `appuser`
+- Runtime UID: `1000`
+- Runtime GID: `1000`
+- Working directory: `/app`
+- Application completed all seven pipeline stages successfully.
+
+### Vulnerability Scanning
+
+The image was scanned using Trivy with HIGH and CRITICAL severity filters.
+
+Full scan:
+
+    trivy image --scanners vuln --severity HIGH,CRITICAL cloud-infrastructure-quarantine:v4
+
+Scan result snapshot (November 9, 2026):
+
+- Debian OS packages: 47 HIGH, 0 CRITICAL findings.
+- Python dependencies: 0 HIGH or CRITICAL findings.
+
+Scan excluding vulnerabilities without available fixes:
+
+    trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed cloud-infrastructure-quarantine:v4
+
+Result: 0 HIGH or CRITICAL findings with available fixes under the scan criteria.
+
+**Important:** The image is not vulnerability-free. The full scan still reports 47 HIGH findings, many without an available fix at the time of scanning. The filtered scan does not remediate or eliminate those findings.
+
+### Unit Test Results
+
+Command:
+
+    python -m unittest discover -s tests -v
+
+Result:
+
+- 13 tests passed.
+- 0 test failures.
+- Dependency safety and protected-instance safeguards verified.
+- Quarantine execution remains disabled.
